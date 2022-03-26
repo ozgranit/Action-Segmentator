@@ -1,3 +1,4 @@
 # Action-Segmentator
-NLP project\n
+NLP project
+
 Unzip 'sentence_builder\data\adlnormal.zip' before running
