@@ -3,8 +3,11 @@ import random
 import unittest
 import itertools
 import pandas as pd
-
+from textsplit.tools import get_penalty, get_segments
+from textsplit.algorithm import split_optimal, split_greedy, get_total
 from pathlib import Path
+
+from sentence_builder.segmentation_metrics import get_casas_data, break_seq_p_k, break_seq_wd
 
 
 class SentenceBuilder(unittest.TestCase):
@@ -23,10 +26,18 @@ class SentenceBuilder(unittest.TestCase):
         casas_folder_path = Path(os.path.dirname(__file__)) / 'data' / 'adlnormal'
         true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
 
-        # model = NGramModel(casas_df, self.export_path, self.export_path)
-        sent_break_index = model.run(verbose=0)
+        sentence_vectors = casas_df['Description_ID']
+        sentence_vectors = sentence_vectors.to_numpy().reshape(-1, 1)
+        # todo: why is the penalty always zero
+        target_seg_len_in_sent = 50
+        # penalty = get_penalty(sentence_vectors, target_seg_len_in_sent)
+        penalty = 0.2
+        optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=target_seg_len_in_sent)
 
-        predicted_sentences = sorted(sent_break_index) + [len(casas_df)]
+        # model = NGramModel(casas_df, self.export_path, self.export_path)
+        # sent_break_index = model.run(verbose=0)
+
+        predicted_sentences = sorted(optimal_segmentation.splits) + [len(casas_df)]
         true_sentences = sorted(true_sent_breaks)
         print('Pk score is ' + str(break_seq_p_k(predicted_sentences, true_sentences)))
         print('WD score is ' + str(break_seq_wd(predicted_sentences, true_sentences)))
