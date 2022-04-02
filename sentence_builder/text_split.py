@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from sklearn.feature_extraction.text import CountVectorizer
-from com_nice_apa_af_ml.test.unit_tests.test_sentence_builder.segmentation_metrics import break_seq_p_k, get_casas_data
-from com_nice_apa_af_ml.test.unit_tests.test_sentence_builder.segmentation_metrics import break_seq_wd
+from segmentation_metrics import break_seq_p_k, get_casas_data
+from segmentation_metrics import break_seq_wd
 from textsplit.tools import get_penalty, get_segments
 from textsplit.algorithm import split_optimal, split_greedy, get_total
 
