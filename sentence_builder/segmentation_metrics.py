@@ -115,5 +115,51 @@ def get_df(filename):
     return data
 
 
+def precision_recall(true_segs, predicted_segs, text_len):
+    true_positives, true_negatives, false_positives, false_negatives = 0, 0, 0, 0
+
+    # build true clustering allocation
+    true_seg_allocation = {}
+    prev_seg, cluster_index = 0, 0
+    for seg_point in true_segs:
+        for point in range(prev_seg, seg_point):
+            true_seg_allocation[point] = cluster_index
+        cluster_index += 1
+        prev_seg = seg_point
+
+    # build pred clustering allocation
+    pred_seg_allocation = {}
+    prev_seg, cluster_index = 0, 0
+    for seg_point in predicted_segs:
+        for point in range(prev_seg, seg_point):
+            pred_seg_allocation[point] = cluster_index
+        cluster_index += 1
+        prev_seg = seg_point
+
+    for i in range(text_len):
+        for j in range(i+1, text_len):
+            are_the_same_cluster_true = true_seg_allocation.get(i) == true_seg_allocation.get(j)
+            are_the_same_cluster_pred = pred_seg_allocation.get(i) == pred_seg_allocation.get(j)
+
+            if are_the_same_cluster_true is True:
+                if are_the_same_cluster_pred is True:
+                    true_positives += 1
+                else:
+                    false_negatives += 1
+
+            if are_the_same_cluster_true is False:
+                if are_the_same_cluster_pred is False:
+                    true_negatives += 1
+                else:
+                    false_positives += 1
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    acc = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+    F_score = 2 * ((precision * recall) / (precision + recall))
+
+    return precision, recall, acc, F_score
+
+
 if __name__ == '__main__':
     get_casas_data(0)

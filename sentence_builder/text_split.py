@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.feature_extraction.text import CountVectorizer
 from segmentation_metrics import break_seq_p_k, get_casas_data
-from segmentation_metrics import break_seq_wd
+from segmentation_metrics import break_seq_wd, precision_recall
 from textsplit.tools import get_penalty, get_segments
 from textsplit.algorithm import split_optimal, split_greedy, get_total
 
@@ -36,6 +36,16 @@ if __name__ == '__main__':
 
     sentence_vectors = vecr.transform(sentenced_text).dot(wrdvecs)
 
+    # # to test with no count CountVectorizer
+    # a = []
+    # for i in casas_df['Description_ID'].values:
+    #     if str(i) not in wrdvecs.index:
+    #         print(i)
+    #         continue
+    #     a.append(pd.DataFrame(wrdvecs.loc[str(i)]).T)
+    # df = pd.concat(a)
+    # sentence_vectors = df.to_numpy().dot(wrdvecs.T)
+
     penalty = get_penalty([sentence_vectors], segment_len)
     print('penalty %4.2f' % penalty)
 
@@ -63,11 +73,15 @@ if __name__ == '__main__':
     true_sentences = sorted(true_sent_breaks)
     print(f'\tPk score is {break_seq_p_k(predicted_sentences, true_sentences):.2f}\n'
           f'\tWD score is {break_seq_wd(predicted_sentences, true_sentences):.2f}')
+    precision, recall, acc, F_score = precision_recall(true_sentences, predicted_sentences, len(casas_df))
+    print(f'\t precision: {precision}, recall: {recall}, acc: {acc}, F_score: {F_score}')
 
     print('optimal segmentation scores:')
     predicted_sentences = sorted(optimal_segmentation.splits) + [len(casas_df)]
     true_sentences = sorted(true_sent_breaks)
     print(f'\tPk score is {break_seq_p_k(predicted_sentences, true_sentences):.2f}\n'
           f'\tWD score is {break_seq_wd(predicted_sentences, true_sentences):.2f}')
+    precision, recall, acc, F_score = precision_recall(true_sentences, predicted_sentences, len(casas_df))
+    print(f'\t precision: {precision}, recall: {recall}, acc: {acc}, F_score: {F_score}')
 
     plt.show()

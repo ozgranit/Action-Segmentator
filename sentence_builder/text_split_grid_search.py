@@ -1,4 +1,6 @@
 import os
+import sys
+
 import word2vec
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,13 +26,13 @@ if __name__ == '__main__':
 
 
     possible_values = {
-    'segment_len': [30,10,20,40,50,60], # 35,25,65,55,45
+    'segment_len': [30,10,20,40,50,60,35,25,65,55,45], # 35,25,65,55,45
     'cbow': [1,0],
-    'negative': [5,13,20,3,0], # 8,10,15
+    'negative': [5,13,20,3,0,8,10,15], # 8,10,15
     'iter_': [5,10],
     'hs': [1,0],
-    'sample' : ['1e-5','0','1e-3'], # ,'1e-4','1e-6'
-    'window' :[15,30,5,10], # 25,50,35, 100
+    'sample' : ['1e-5','0','1e-3','1e-4','1e-6'], # ,'1e-4','1e-6'
+    'window' :[15,30,5,10,25,50,35, 100], # 25,50,35, 100
     'size': [200,10,50,75,100,150],
     'binary':[1]
     }
@@ -40,6 +42,10 @@ if __name__ == '__main__':
     combinations = list(itertools.product(*(possible_values[Name] for Name in allNames)))
     exp_number = 1
     temp_scores = []
+    best_pk = sys.maxsize
+    file_path = "/groups/pupko/alburquerque/ActionSeg/res.txt"
+    with open(file_path, "w+") as fp:
+        fp.write("")
     for comb in combinations:
         binary, cbow, hs, iter_, negative, sample, segment_len, size, window = comb
         param_string = f'binary:{binary},cbow:{cbow},hs:{hs},iter_:{iter_},negative:{negative},sample:{sample},segment_len:{segment_len},size:{size},window:{window}'
@@ -71,21 +77,24 @@ if __name__ == '__main__':
         greedy_predicted_sentences = sorted(greedy_segmentation.splits) + [len(casas_df)]
         optimal_predicted_sentences = sorted(optimal_segmentation.splits) + [len(casas_df)]
         optimal_pk = break_seq_p_k(optimal_predicted_sentences, true_sentences)
-        current_score = {
-            'greedy_pk': break_seq_p_k(greedy_predicted_sentences, true_sentences),
-            'greedy_wd': break_seq_wd(greedy_predicted_sentences, true_sentences),
-            'optimal_pk': optimal_pk,
-            'optimal_wd': break_seq_wd(optimal_predicted_sentences, true_sentences)
-        }
-        results[param_string] = current_score
-        exp_number += 1
-        temp_scores.append(optimal_pk)
-        if exp_number % 50 == 0:
+        if optimal_pk < best_pk:
+
+            current_score = {
+                'greedy_pk': break_seq_p_k(greedy_predicted_sentences, true_sentences),
+                'greedy_wd': break_seq_wd(greedy_predicted_sentences, true_sentences),
+                'optimal_pk': optimal_pk,
+                'optimal_wd': break_seq_wd(optimal_predicted_sentences, true_sentences)
+            }
+            results[param_string] = current_score
+            exp_number += 1
             joblib.dump(results, 'results.pkl')
-            print(sorted(temp_scores)[0])
             temp_scores = []
+            with open(file_path, 'a') as fp:
+                fp.write(f'found better pk of: {optimal_pk}, ')
 
     joblib.dump(results, 'results.pkl')
     flat_res = flatten_json.flatten(results)
     sorted_keys = sorted(flat_res, key=flat_res.get)
+    with open(file_path, 'a') as fp:
+        fp.write(f'the best key is {sorted_keys[0]} \n with a score of {flat_res.get(sorted_keys[0])}')
     print(f'the best key is {sorted_keys[0]} \n with a score of {flat_res.get(sorted_keys[0])}')
