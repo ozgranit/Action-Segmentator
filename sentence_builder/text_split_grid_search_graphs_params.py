@@ -37,16 +37,16 @@ if __name__ == '__main__':
     }
     results = {}
 
-    optimal_values = {
-    'segment_len': 30,
-    'cbow': 1,
-    'negative': 0,
-    'iter_': 5,
-    'hs': 1,
-    'sample' : '1e-5',
-    'window' : 15,
-    'size': 200,
-    'binary':1
+    optimal_values = {  # a result of grid searching
+        'binary': 1,
+        'cbow': 1,
+        'hs': 1,
+        'iter_': 5,
+        'negative': 3,
+        'sample': '0',
+        'segment_len': 25,
+        'size': 150,
+        'window': 15
     }
 
     allNames = sorted(possible_values)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     Path("./figures").mkdir(exist_ok=True)
 
     for param_to_test in allNames:
-        param_values, param_results_opt, param_results_greedy, param_res_precision_opt, param_res_precision_greedy = [], [], [], [], []
+        param_values, param_results_opt, param_results_greedy, param_res_f_opt, param_res_f_greedy = [], [], [], [], []
         if param_to_test in ('binary','hs','iter_','cbow'):
             continue
         for value in possible_values.get(param_to_test):
@@ -81,11 +81,11 @@ if __name__ == '__main__':
             optimal_predicted_sentences = sorted(optimal_segmentation.splits) + [len(casas_df)]
             optimal_pk = break_seq_p_k(optimal_predicted_sentences, true_sentences)
             greedy_pk = break_seq_p_k(greedy_predicted_sentences, true_sentences)
-            precision_greedy = precision_recall(true_sentences, greedy_predicted_sentences, len(casas_df))[0]
-            precision_opt = precision_recall(true_sentences, optimal_predicted_sentences, len(casas_df))[0]
+            f_greedy = precision_recall(true_sentences, greedy_predicted_sentences, len(casas_df))[3]
+            f_opt = precision_recall(true_sentences, optimal_predicted_sentences, len(casas_df))[3]
 
-            param_res_precision_opt.append(precision_opt)
-            param_res_precision_greedy.append(precision_greedy)
+            param_res_f_opt.append(f_opt)
+            param_res_f_greedy.append(f_greedy)
             param_values.append(value)
             param_results_opt.append(optimal_pk)
             param_results_greedy.append(greedy_pk)
@@ -96,8 +96,8 @@ if __name__ == '__main__':
         plt.xlabel('Parameter value')
         plt.ylabel('PK Score')
         plt.plot(param_values, param_results_opt, label='optimal pk')
-        plt.plot(param_values, param_res_precision_opt, label='optimal precision')
-        plt.plot(param_values, param_res_precision_greedy, label='greedy precision')
+        plt.plot(param_values, param_res_f_opt, label='optimal F score')
+        plt.plot(param_values, param_res_f_greedy, label='greedy F score')
         plt.plot(param_values, param_results_greedy, label='greedy pk')
         plt.legend()
         plt.savefig(f'./figures/param_changes_{param_to_test}.png')

@@ -21,15 +21,16 @@ if __name__ == '__main__':
             text_file.write(str(item) + " ")
 
     wrdvec_path = 'wrdvecs.bin'
-    if not os.path.exists(wrdvec_path):
-        word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=200, binary=1)
+    if not os.path.exists(wrdvec_path):  # optimal params from grid search
+        word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=150, binary=1)
 
     model = word2vec.load(wrdvec_path)
     wrdvecs = pd.DataFrame(model.vectors, index=model.vocab)
     del model
     print(wrdvecs.shape)
 
-    segment_len = 30  # segment target length in sentences
+    # optimal params from grid search
+    segment_len = 25  # segment target length in sentences
     sentenced_text = [str(i) for i in casas_df["Description_ID"]]
 
     vecr = CountVectorizer(vocabulary=wrdvecs.index)
