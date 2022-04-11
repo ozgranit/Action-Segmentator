@@ -49,6 +49,14 @@ if __name__ == '__main__':
         'window': 15
     }
 
+    naming_transformer = {
+        'negative': 'Negative sampling rate',
+        'sample': 'Occurrence threshold',
+        'window': 'Window size',
+        'size': 'Output vector size',
+        'segment_len': 'Segment length'
+    }
+
     allNames = sorted(possible_values)
     temp_scores = []
     best_pk = sys.maxsize
@@ -92,7 +100,7 @@ if __name__ == '__main__':
 
         # plot results for param
 
-        plt.title(f'Parameter effect on PK - {param_to_test}')
+        plt.title(f'Parameter effect on PK - {naming_transformer.get(param_to_test, param_to_test)}')
         plt.xlabel('Parameter value')
         plt.ylabel('PK Score')
         plt.plot(param_values, param_results_opt, label='optimal pk')
@@ -100,5 +108,5 @@ if __name__ == '__main__':
         plt.plot(param_values, param_res_f_greedy, label='greedy F score')
         plt.plot(param_values, param_results_greedy, label='greedy pk')
         plt.legend()
-        plt.savefig(f'./figures/param_changes_{param_to_test}.png')
+        plt.savefig(f'./figures/param_changes_{naming_transformer.get(param_to_test, param_to_test)}.png')
         plt.clf()
