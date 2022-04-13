@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from sklearn.feature_extraction.text import CountVectorizer
-from segmentation_metrics import break_seq_p_k, get_casas_data
+from segmentation_metrics import break_seq_p_k, get_casas_data, get_aruba_data
 from segmentation_metrics import break_seq_wd, precision_recall
 from textsplit.tools import get_penalty, get_segments
 from textsplit.algorithm import split_optimal, split_greedy, get_total
@@ -13,8 +13,10 @@ from textsplit.algorithm import split_optimal, split_greedy, get_total
 
 if __name__ == '__main__':
 
-    casas_folder_path = Path(os.path.dirname(__file__)) / 'data' / 'adlnormal'
-    true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
+    casas_folder_path = Path(os.path.dirname(__file__)) / 'data'
+    # true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
+    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path)
+
     corpus_path = './text.txt'
     with open(corpus_path, "w") as text_file:
         for item in casas_df["Description_ID"]:

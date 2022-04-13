@@ -73,11 +73,38 @@ def break_seq_wd(hyp, ref, k=None):
     return score/tot
 
 
+def get_aruba_data(folder_path):
+    """returns seqs of casas-aruba dataset"""
+
+    filename = folder_path / 'aruba' / 'aruba_data'
+    headers = ["date", "time", "sensor_name", "sensor_state", "activity_name", "activity_state"]
+    data = pd.read_csv(filename, index_col=False, names=headers, delim_whitespace=True)
+    data['timestamp'] = data["date"] + " " + data["time"]
+    data['timestamp'] = pd.to_datetime(data['timestamp'])
+
+    seq = data
+
+    activity_breaks = ~seq['activity_state'].isna()
+    sent_breaks = seq.index[activity_breaks].tolist()
+
+    # Label encoder - Description
+    num_mask = pd.to_numeric(seq.sensor_state, errors='coerce').notnull()
+    num_sensor_state = pd.to_numeric(seq["sensor_state"][num_mask])
+    seq["sensor_state"][num_mask] = pd.cut(num_sensor_state, bins=7, labels=np.arange(7), right=False)
+
+    seq['Description_parsed'] = seq["sensor_name"] + seq["sensor_state"].astype(str)
+    le = preprocessing.LabelEncoder()
+    labels_seq = le.fit_transform(seq.Description_parsed.values)
+    seq["Description_ID"] = labels_seq
+
+    return sent_breaks, seq
+
+
 def get_casas_data(folder_path):
     """returns seqs of casas dataset"""
 
     df_lst = []
-    for file in os.listdir(folder_path):
+    for file in os.listdir(folder_path / 'adlnormal'):
         filename = os.fsdecode(file)
         if filename.startswith("p"):
             df = get_df(folder_path / filename)
@@ -162,4 +189,5 @@ def precision_recall(true_segs, predicted_segs, text_len):
 
 
 if __name__ == '__main__':
-    get_casas_data(0)
+    from pathlib import Path
+    get_aruba_data(Path(os.path.dirname(__file__)) / 'data')
