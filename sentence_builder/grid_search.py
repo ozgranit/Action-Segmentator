@@ -4,11 +4,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from pathlib import Path
+from textsplit.tools import get_penalty
+from ngram_splitter import NgramSentenceBuilder
+from segmentation_metrics import precision_recall
+from textsplit.algorithm import split_optimal, split_greedy
 from sklearn.feature_extraction.text import CountVectorizer
 from segmentation_metrics import break_seq_p_k, get_casas_data, get_aruba_data
-from segmentation_metrics import precision_recall
-from textsplit.tools import get_penalty
-from textsplit.algorithm import split_optimal, split_greedy
 
 
 def grid_search(dataset_getter, label_range, data_name):
@@ -147,6 +148,66 @@ def semantic_split(casas_df, true_sent_breaks, params):
     return optimal_pk, greedy_pk, f_greedy, f_opt
 
 
+def ngram_grid_search(dataset_getter, data_name):
+
+    folder_path = Path(os.path.dirname(__file__)) / 'data'
+    true_sent_breaks, casas_df = dataset_getter(folder_path)
+    window_sizes = [3, 5, 7, 10, 15]
+    break_percentiles = [0.01, 0.05, 0.5, 5, 10, 50]
+
+    min_p_k_reached = 1
+    p_lst = []
+    optimal_p_lst = []
+
+    opt_bp = 0.5
+    opt_ws = 5
+
+    for bp in break_percentiles:
+        model = NgramSentenceBuilder(casas_df["Description_ID"], window_size=opt_ws, break_percentile=bp)
+        model.build_sentences()
+
+        predicted_break_pts = model.break_pts
+        true_sentences = sorted(true_sent_breaks)
+        p_k = break_seq_p_k(predicted_break_pts, true_sentences)
+
+        if p_k < min_p_k_reached:
+            opt_bp = bp
+            min_p_k_reached = p_k
+        p_lst.append(p_k)
+        optimal_p_lst.append(min_p_k_reached)
+
+    for ws in window_sizes:
+        model = NgramSentenceBuilder(casas_df["Description_ID"], window_size=ws, break_percentile=opt_bp)
+        model.build_sentences()
+
+        predicted_break_pts = model.break_pts
+        true_sentences = sorted(true_sent_breaks)
+        p_k = break_seq_p_k(predicted_break_pts, true_sentences)
+
+        if p_k < min_p_k_reached:
+            opt_ws = ws
+            min_p_k_reached = p_k
+        p_lst.append(p_k)
+        optimal_p_lst.append(min_p_k_reached)
+
+    print(f'Ngram check, dataset: {data_name}')
+    print(f'window_size: {opt_ws}, break_percentile: {opt_bp}')
+
+    # plot results for entire run
+    plt.title(f'Ngram Parameters')
+    plt.xlabel('Experiment')
+    plt.ylabel('Pk')
+    plt.plot(optimal_p_lst, label=f'min pk={optimal_p_lst[-1]:.3f}')
+    plt.plot(p_lst, label='pk')
+    plt.legend()
+    plt.savefig(f'./figures_{data_name}/ngram_params.png')
+    plt.clf()
+
+
 if __name__ == '__main__':
+    ngram_grid_search(get_casas_data, 'Kyoto')
+    exit(7)
     grid_search(get_casas_data, [3, 5, 10, 15, 50, 100, 200, 400, 570, 1050], 'Kyoto')
-    grid_search(get_aruba_data, [3, 5, 10, 15, 100, 570, 10000, 20000, 30000], 'Aruba')
+    grid_search(get_aruba_data, [3, 5, 10, 15, 50, 100, 570, 10000, 20000, 30000], 'Aruba')
+
+    ngram_grid_search(get_aruba_data, 'Aruba')

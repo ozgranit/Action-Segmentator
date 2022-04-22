@@ -6,25 +6,27 @@ from nltk.lm.preprocessing import padded_everygram_pipeline
 
 
 class NgramSentenceBuilder:
-    def __init__(self, actions: pd.Series):
+    def __init__(self, actions: pd.Series, window_size, break_percentile):
         # we expect a column from df
         if not isinstance(actions, pd.Series):
             raise TypeError
 
         self.actions = actions
         self.break_pts = None
+        self.window_size = window_size
+        self.break_percentile = break_percentile
 
     def build_sentences(self):
-        window_size = 5
-        sentence_break_percentile = 5
+        window_size = self.window_size
+        sentence_break_percentile = self.break_percentile
 
         actions_str = [str(i) for i in self.actions]
         # Preprocess the tokenized text for 3-grams language modelling
         train_data, padded_sents = padded_everygram_pipeline(window_size, [actions_str])
         model = MLE(window_size)
         model.fit(train_data, padded_sents)
-        print(model.vocab)
-        print(model.counts)
+        # print(model.vocab)
+        # print(model.counts)
 
         predicted_prob = []
         for i in range(len(actions_str) - window_size + 1):
