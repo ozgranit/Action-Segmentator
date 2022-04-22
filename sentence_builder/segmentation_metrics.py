@@ -1,6 +1,9 @@
 import os
+import word2vec
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
 from random import shuffle
 from sklearn import preprocessing
 
@@ -73,7 +76,7 @@ def break_seq_wd(hyp, ref, k=None):
     return score/tot
 
 
-def get_aruba_data(folder_path):
+def get_aruba_data(folder_path, labels=12910):
     """returns seqs of casas-aruba dataset"""
 
     filename = folder_path / 'aruba' / 'aruba_data'
@@ -90,7 +93,7 @@ def get_aruba_data(folder_path):
     # Label encoder - Description
     num_mask = pd.to_numeric(seq.sensor_state, errors='coerce').notnull()
     num_sensor_state = pd.to_numeric(seq["sensor_state"][num_mask])
-    seq["sensor_state"][num_mask] = pd.cut(num_sensor_state, bins=7, labels=np.arange(7), right=False)
+    seq["sensor_state"][num_mask] = pd.cut(num_sensor_state, bins=labels, labels=np.arange(labels), right=False)
 
     seq['Description_parsed'] = seq["sensor_name"] + seq["sensor_state"].astype(str)
     le = preprocessing.LabelEncoder()
@@ -100,14 +103,14 @@ def get_aruba_data(folder_path):
     return sent_breaks, seq
 
 
-def get_casas_data(folder_path):
+def get_casas_data(folder_path, labels=570):
     """returns seqs of casas dataset"""
 
     df_lst = []
     for file in os.listdir(folder_path / 'adlnormal'):
         filename = os.fsdecode(file)
         if filename.startswith("p"):
-            df = get_df(folder_path / filename)
+            df = get_df(folder_path / 'adlnormal' / filename)
             df_lst.append(df)
     shuffle(df_lst)
 
@@ -122,7 +125,7 @@ def get_casas_data(folder_path):
     # Label encoder - Description
     num_mask = pd.to_numeric(seq.sensor_state, errors='coerce').notnull()
     num_sensor_state = pd.to_numeric(seq["sensor_state"][num_mask])
-    seq["sensor_state"][num_mask] = pd.cut(num_sensor_state, bins=7, labels=np.arange(7), right=False)
+    seq["sensor_state"][num_mask] = pd.cut(num_sensor_state, bins=labels, labels=np.arange(labels), right=False)
 
     seq['Description_parsed'] = seq["sensor_name"] + seq["sensor_state"].astype(str)
     le = preprocessing.LabelEncoder()
@@ -188,6 +191,47 @@ def precision_recall(true_segs, predicted_segs, text_len):
     return precision, recall, acc, F_score
 
 
+def find_max_vocab(dataset_getter, range_func, data_name):
+    folder_path = Path(os.path.dirname(__file__)) / 'data'
+    max_vocab = 0
+    best_bucket_num = 7
+    vocab_list = []
+    bucket_options = [i for i in range_func]
+
+    for i in bucket_options:
+        true_sent_breaks, casas_df = dataset_getter(folder_path, labels=i)
+        corpus_path = './text.txt'
+        with open(corpus_path, "w") as text_file:
+            for item in casas_df["Description_ID"]:
+                text_file.write(str(item) + " ")
+
+        wrdvec_path = 'wrdvecs.bin'
+        # optimal params from grid search
+        word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=150,
+                          binary=1)
+        model = word2vec.load(wrdvec_path)
+
+        os.remove(wrdvec_path)
+        os.remove(corpus_path)
+
+        wrdvecs = pd.DataFrame(model.vectors, index=model.vocab)
+        del model
+        vocab, vec_size = wrdvecs.shape
+        vocab_list.append(vocab)
+        if vocab > max_vocab:
+            max_vocab = vocab
+            best_bucket_num = i
+
+    print(f'max_vocab = {max_vocab}, best_bucket_num = {best_bucket_num}')
+    plt.title(f'# Buckets VS Vocab size')
+    plt.xlabel('# Buckets')
+    plt.ylabel('Vocab size')
+    plt.plot(bucket_options, vocab_list, label='Kyoto data')
+    plt.legend()
+    plt.savefig(f'./figures/max_vocab_{data_name}.png')
+    plt.clf()
+
+
 if __name__ == '__main__':
-    from pathlib import Path
-    get_aruba_data(Path(os.path.dirname(__file__)) / 'data')
+    find_max_vocab(get_aruba_data, range(10, 52200, 100), 'Aruba')
+    find_max_vocab(get_casas_data, range(10, 1200, 20), 'Kyoto')

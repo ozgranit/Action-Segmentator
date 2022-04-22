@@ -14,8 +14,7 @@ from textsplit.algorithm import split_optimal, split_greedy, get_total
 if __name__ == '__main__':
 
     casas_folder_path = Path(os.path.dirname(__file__)) / 'data'
-    # true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
-    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path)
+    true_sent_breaks, casas_df = get_casas_data(casas_folder_path, labels=6)
 
     corpus_path = './text.txt'
     with open(corpus_path, "w") as text_file:
@@ -23,10 +22,13 @@ if __name__ == '__main__':
             text_file.write(str(item) + " ")
 
     wrdvec_path = 'wrdvecs.bin'
-    if not os.path.exists(wrdvec_path):  # optimal params from grid search
-        word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=150, binary=1)
-
+    # optimal params from grid search
+    word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=150, binary=1)
     model = word2vec.load(wrdvec_path)
+
+    os.remove(wrdvec_path)
+    os.remove(corpus_path)
+
     wrdvecs = pd.DataFrame(model.vectors, index=model.vocab)
     del model
     print(wrdvecs.shape)
