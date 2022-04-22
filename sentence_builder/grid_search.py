@@ -205,9 +205,8 @@ def ngram_grid_search(dataset_getter, data_name):
 
 
 if __name__ == '__main__':
-    ngram_grid_search(get_casas_data, 'Kyoto')
-    exit(7)
     grid_search(get_casas_data, [3, 5, 10, 15, 50, 100, 200, 400, 570, 1050], 'Kyoto')
     grid_search(get_aruba_data, [3, 5, 10, 15, 50, 100, 570, 10000, 20000, 30000], 'Aruba')
 
+    ngram_grid_search(get_casas_data, 'Kyoto')
     ngram_grid_search(get_aruba_data, 'Aruba')
