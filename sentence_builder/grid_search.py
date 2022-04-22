@@ -13,11 +13,11 @@ from textsplit.algorithm import split_optimal, split_greedy
 
 def grid_search(dataset_getter, label_range, data_name):
     data_folder = Path(os.path.dirname(__file__)) / 'data'
-    Path("./figures").mkdir(exist_ok=True)
+    Path(f"./figures_{data_name}").mkdir(exist_ok=True)
 
     possible_values = {
         'labels': [7] + [i for i in label_range],
-        'segment_len': [15, 30, 50, 75, 100, 150],
+        'segment_len': [15, 30, 45, 60, 75, 90, 105, 150],
         'window': [3, 5, 15, 30, 50],
         'cbow': [0, 1],
         'size': [15, 25, 50, 150, 250, 300]
@@ -86,7 +86,7 @@ def grid_search(dataset_getter, label_range, data_name):
         plt.plot(param_values, param_res_f_greedy, label='greedy F score')
         plt.plot(param_values, param_results_greedy, label='greedy pk')
         plt.legend()
-        plt.savefig(f'./figures/param_changes_{naming_transformer.get(param_to_test, param_to_test)}.png')
+        plt.savefig(f'./figures_{data_name}/param_changes_{naming_transformer.get(param_to_test, param_to_test)}.png')
         plt.clf()
 
     # plot results for entire run
@@ -96,9 +96,9 @@ def grid_search(dataset_getter, label_range, data_name):
     plt.plot(optimal_p_lst, label=f'min pk={optimal_p_lst[-1]:.3f}')
     plt.plot(p_lst, label='pk')
     plt.plot(optimal_f_lst, label=f'max F={optimal_f_lst[-1]:.3f}')
-    plt.plot(f_lst, label='pk')
+    plt.plot(f_lst, label='F score')
     plt.legend()
-    plt.savefig(f'./figures/grid_search_{data_name}.png')
+    plt.savefig(f'./figures_{data_name}/grid_search_{data_name}.png')
     plt.clf()
 
     print(f'dataset: {data_name}')
@@ -148,5 +148,5 @@ def semantic_split(casas_df, true_sent_breaks, params):
 
 
 if __name__ == '__main__':
-    grid_search(get_casas_data, range(5, 10, 25), 'Kyoto')
-    # grid_search(get_aruba_data, range(5, 700, 25), 'Aruba')
+    grid_search(get_casas_data, [3, 5, 10, 15, 50, 100, 200, 400, 570, 1050], 'Kyoto')
+    grid_search(get_aruba_data, [3, 5, 10, 15, 100, 570, 10000, 20000, 30000], 'Aruba')
