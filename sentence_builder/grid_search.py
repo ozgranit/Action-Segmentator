@@ -60,20 +60,20 @@ def grid_search(dataset_getter, label_range, data_name):
             true_sent_breaks, casas_df = dataset_getter(data_folder, labels=current_params.get('labels'))
             # params = cbow, hs, iter_, size, window, segment_len, labels
             params = tuple(current_params.values())
-            p_k, greedy_pk, f_greedy, f_opt = semantic_split(casas_df, true_sent_breaks, params)
+            p_k, greedy_pk = semantic_split(casas_df, true_sent_breaks, params)
 
             if p_k < min_p_k_reached:
                 optimal_values[param_to_test] = value
                 min_p_k_reached = p_k
-            max_f_reached = max(f_opt, max_f_reached)
+            #max_f_reached = max(f_opt, max_f_reached)
 
             p_lst.append(p_k)
-            f_lst.append(f_opt)
+            #f_lst.append(f_opt)
             optimal_p_lst.append(min_p_k_reached)
             optimal_f_lst.append(max_f_reached)
 
-            param_res_f_opt.append(f_opt)
-            param_res_f_greedy.append(f_greedy)
+            #param_res_f_opt.append(f_opt)
+            #param_res_f_greedy.append(f_greedy)
             param_values.append(value)
             param_results_opt.append(p_k)
             param_results_greedy.append(greedy_pk)
@@ -140,12 +140,12 @@ def semantic_split(casas_df, true_sent_breaks, params):
 
     optimal_pk = break_seq_p_k(optimal_predicted_sentences, true_sentences)
     greedy_pk = break_seq_p_k(greedy_predicted_sentences, true_sentences)
-    f_greedy = precision_recall(true_sentences, greedy_predicted_sentences, len(casas_df))[3]
-    f_opt = precision_recall(true_sentences, optimal_predicted_sentences, len(casas_df))[3]
+    # f_greedy = precision_recall(true_sentences, greedy_predicted_sentences, len(casas_df))[3]
+    # f_opt = precision_recall(true_sentences, optimal_predicted_sentences, len(casas_df))[3]
 
     print(f'\tPk score is {optimal_pk:.2f}\n')
 
-    return optimal_pk, greedy_pk, f_greedy, f_opt
+    return optimal_pk, greedy_pk
 
 
 def ngram_grid_search(dataset_getter, data_name):
@@ -205,8 +205,8 @@ def ngram_grid_search(dataset_getter, data_name):
 
 
 if __name__ == '__main__':
-    grid_search(get_casas_data, [3, 5, 10, 15, 50, 100, 200, 400, 570, 1050], 'Kyoto')
-    grid_search(get_aruba_data, [3, 5, 10, 15, 50, 100, 570, 10000, 20000, 30000], 'Aruba')
+    # grid_search(get_casas_data, [3, 5, 10, 15, 50, 100, 200, 400, 570, 1050], 'Kyoto')
 
-    ngram_grid_search(get_casas_data, 'Kyoto')
-    ngram_grid_search(get_aruba_data, 'Aruba')
+    # ngram_grid_search(get_casas_data, 'Kyoto')
+    # ngram_grid_search(get_aruba_data, 'Aruba')
+    grid_search(get_aruba_data, [3, 5, 10, 15, 50, 100, 570, 10000, 20000, 30000], 'Aruba')
