@@ -1,8 +1,12 @@
+import os
 import numpy as np
 import pandas as pd
 
 from nltk.lm import MLE
+from pathlib import Path
 from nltk.lm.preprocessing import padded_everygram_pipeline
+from segmentation_metrics import break_seq_p_k, get_casas_data, get_aruba_data
+from segmentation_metrics import precision_recall
 
 
 class NgramSentenceBuilder:
@@ -40,3 +44,24 @@ class NgramSentenceBuilder:
 
         return self.break_pts
 
+
+def ngram_results(dataset_getter, data_name, opt_ws, opt_bp):
+
+    folder_path = Path(os.path.dirname(__file__)) / 'data'
+    true_sent_breaks, casas_df = dataset_getter(folder_path)
+
+    model = NgramSentenceBuilder(casas_df["Description_ID"], window_size=opt_ws, break_percentile=opt_bp)
+    model.build_sentences()
+
+    predicted_break_pts = model.break_pts
+    true_sentences = sorted(true_sent_breaks)
+    p_k = break_seq_p_k(predicted_break_pts, true_sentences)
+    f_score = precision_recall(true_sentences, predicted_break_pts, len(casas_df))[3]
+
+    print(f'Ngram check, dataset: {data_name}')
+    print(f'p_k: {p_k}, f_score: {f_score}')
+
+
+if __name__ == '__main__':
+    # ngram_results(get_casas_data, 'Kyoto', opt_ws=5, opt_bp=0.05)
+    ngram_results(get_aruba_data, 'Aruba', opt_ws=10, opt_bp=0.01)
