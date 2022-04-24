@@ -17,23 +17,22 @@ def grid_search(dataset_getter, label_range, data_name):
     Path(f"./figures_{data_name}").mkdir(exist_ok=True)
 
     possible_values = {
-        'labels': [7] + [i for i in label_range],
-        'segment_len': [15, 30, 45, 60, 75, 90, 105, 150],
-        'window': [5, 10, 15, 30],
-        'cbow': [0, 1],
-        'size': [5, 15, 50, 150, 300]
+        'labels': [i for i in label_range],
+        'segment_len': [30, 105, 150, 175, 200, 250, 300],
+        'window': [3, 5, 7, 25],
+        'size': [15, 50, 150, 200, 300]
     }
 
     optimal_values = {  # a result of grid searching
         'cbow': 1,
         'hs': 1,
         'iter_': 5,
-        'size': 200,
+        'size': 5,
         'window': 15,
-        'segment_len': 30,
-        'labels': 7
+        'segment_len':  150,
+        'labels': 1570
     }
-    names = ['labels', 'segment_len', 'window', 'cbow', 'size']
+    names = ['segment_len', 'labels', 'window', 'size']
 
     naming_transformer = {
         'labels': 'Number of Buckets',
@@ -131,7 +130,7 @@ def semantic_split(casas_df, true_sent_breaks, params):
 
     penalty = get_penalty([sentence_vectors], segment_len)
 
-    optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=250)
+    optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=600)
     greedy_segmentation = split_greedy(sentence_vectors, max_splits=len(optimal_segmentation.splits))
 
     optimal_predicted_sentences = sorted(optimal_segmentation.splits) + [len(casas_df)]
@@ -143,7 +142,7 @@ def semantic_split(casas_df, true_sent_breaks, params):
     # f_greedy = precision_recall(true_sentences, greedy_predicted_sentences, len(casas_df))[3]
     # f_opt = precision_recall(true_sentences, optimal_predicted_sentences, len(casas_df))[3]
 
-    print(f'\tPk score is {optimal_pk:.2f}\n')
+    print(f'\tPk score is {optimal_pk:.3f}\n')
 
     return optimal_pk, greedy_pk
 
@@ -209,4 +208,4 @@ if __name__ == '__main__':
 
     # ngram_grid_search(get_casas_data, 'Kyoto')
     # ngram_grid_search(get_aruba_data, 'Aruba')
-    grid_search(get_aruba_data, [13, 21, 42, 222, 1570, 10000], 'Aruba')
+    grid_search(get_aruba_data, [50, 500, 1000, 1500, 2500, 5000, 15000], 'Aruba')
