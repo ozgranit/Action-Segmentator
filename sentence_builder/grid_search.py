@@ -19,9 +19,9 @@ def grid_search(dataset_getter, label_range, data_name):
     possible_values = {
         'labels': [7] + [i for i in label_range],
         'segment_len': [15, 30, 45, 60, 75, 90, 105, 150],
-        'window': [3, 5, 15, 30, 50],
+        'window': [5, 10, 15, 30],
         'cbow': [0, 1],
-        'size': [15, 25, 50, 150, 250, 300]
+        'size': [5, 15, 50, 150, 300]
     }
 
     optimal_values = {  # a result of grid searching
@@ -44,14 +44,14 @@ def grid_search(dataset_getter, label_range, data_name):
     }
 
     min_p_k_reached = 1
-    max_f_reached = 0
+    # max_f_reached = 0
     p_lst = []
-    f_lst = []
+    # f_lst = []
     optimal_p_lst = []
-    optimal_f_lst = []
+    # optimal_f_lst = []
 
     for param_to_test in names:
-        param_values, param_results_opt, param_results_greedy, param_res_f_opt, param_res_f_greedy = [], [], [], [], []
+        param_values, param_results_opt, param_results_greedy = [], [], []
         for value in possible_values.get(param_to_test):
             current_params = optimal_values.copy()
             current_params[param_to_test] = value
@@ -70,7 +70,7 @@ def grid_search(dataset_getter, label_range, data_name):
             p_lst.append(p_k)
             #f_lst.append(f_opt)
             optimal_p_lst.append(min_p_k_reached)
-            optimal_f_lst.append(max_f_reached)
+            # optimal_f_lst.append(max_f_reached)
 
             #param_res_f_opt.append(f_opt)
             #param_res_f_greedy.append(f_greedy)
@@ -83,8 +83,8 @@ def grid_search(dataset_getter, label_range, data_name):
         plt.xlabel('Parameter value')
         plt.ylabel('Score')
         plt.plot(param_values, param_results_opt, label='optimal pk')
-        plt.plot(param_values, param_res_f_opt, label='optimal F score')
-        plt.plot(param_values, param_res_f_greedy, label='greedy F score')
+        # plt.plot(param_values, param_res_f_opt, label='optimal F score')
+        # plt.plot(param_values, param_res_f_greedy, label='greedy F score')
         plt.plot(param_values, param_results_greedy, label='greedy pk')
         plt.legend()
         plt.savefig(f'./figures_{data_name}/param_changes_{naming_transformer.get(param_to_test, param_to_test)}.png')
@@ -96,8 +96,8 @@ def grid_search(dataset_getter, label_range, data_name):
     plt.ylabel('Score')
     plt.plot(optimal_p_lst, label=f'min pk={optimal_p_lst[-1]:.3f}')
     plt.plot(p_lst, label='pk')
-    plt.plot(optimal_f_lst, label=f'max F={optimal_f_lst[-1]:.3f}')
-    plt.plot(f_lst, label='F score')
+    # plt.plot(optimal_f_lst, label=f'max F={optimal_f_lst[-1]:.3f}')
+    # plt.plot(f_lst, label='F score')
     plt.legend()
     plt.savefig(f'./figures_{data_name}/grid_search_{data_name}.png')
     plt.clf()
@@ -209,4 +209,4 @@ if __name__ == '__main__':
 
     # ngram_grid_search(get_casas_data, 'Kyoto')
     # ngram_grid_search(get_aruba_data, 'Aruba')
-    grid_search(get_aruba_data, [3, 5, 10, 15, 50, 100, 570, 10000, 20000, 30000], 'Aruba')
+    grid_search(get_aruba_data, [13, 21, 42, 222, 1570, 10000], 'Aruba')
