@@ -6,18 +6,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.feature_extraction.text import CountVectorizer
-from segmentation_metrics import break_seq_p_k, get_casas_data
+from segmentation_metrics import break_seq_p_k, get_casas_data, get_aruba_data
 from segmentation_metrics import break_seq_wd, precision_recall
 from textsplit.tools import get_penalty, get_segments
 from textsplit.algorithm import split_optimal, split_greedy, get_total
 import itertools
 import flatten_json
 import joblib
-
+import time
 if __name__ == '__main__':
 
-    casas_folder_path = Path(os.path.dirname(__file__)) / 'data' / 'adlnormal'
-    true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
+    casas_folder_path = Path(os.path.dirname(__file__)) / 'data'
+    # true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
+    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path)
+    # which is ok cause is where true sent breaks anyway
+    casas_df = casas_df[casas_df['date'] == '2010-11-04']
+    true_sent_breaks = true_sent_breaks[:63]
     corpus_path = './text_2.txt'
     with open(corpus_path, "w") as text_file:
         for item in casas_df["Description_ID"]:
@@ -25,7 +29,7 @@ if __name__ == '__main__':
 
 
     possible_values = {
-    'segment_len': [5, 10, 15, 20, 25, 27, 30, 35, 40, 45, 50, 55, 60, 65],
+    'segment_len': [5, 10, 15, 20, 25, 27, 30, 35, 40, 45, 50, 55, 60, 65,80,90,100,110],
     'cbow': [0, 1],
     'negative':[0, 3, 5, 8, 10, 13, 15, 20],
     'iter_': [5, 10],
@@ -44,7 +48,7 @@ if __name__ == '__main__':
         'iter_': 5,
         'negative': 3,
         'sample': '0',
-        'segment_len': 25,
+        'segment_len': 15,
         'size': 150,
         'window': 15
     }
@@ -60,8 +64,8 @@ if __name__ == '__main__':
     allNames = sorted(possible_values)
     temp_scores = []
     best_pk = sys.maxsize
-    Path("./figures").mkdir(exist_ok=True)
-
+    Path("figures_day2").mkdir(exist_ok=True)
+    k=0
     for param_to_test in allNames:
         param_values, param_results_opt, param_results_greedy, param_res_f_opt, param_res_f_greedy = [], [], [], [], []
         if param_to_test in ('binary','hs','iter_','cbow'):
@@ -71,6 +75,7 @@ if __name__ == '__main__':
             current_params[param_to_test] = value
             binary, cbow, hs, iter_, negative, sample, segment_len, size, window = [current_params.get(key) for key in allNames]
             # train with this param
+
             wrdvec_path = 'wrdvecs_graphs.bin'
             word2vec.word2vec(corpus_path, wrdvec_path, cbow=cbow, iter_=iter_, hs=hs, threads=8, sample=sample,
                               window=window, size=size, binary=binary, negative=negative)
@@ -97,6 +102,8 @@ if __name__ == '__main__':
             param_values.append(value)
             param_results_opt.append(optimal_pk)
             param_results_greedy.append(greedy_pk)
+            print(k)
+            k+=1
 
         # plot results for param
 

@@ -14,7 +14,7 @@ from textsplit.algorithm import split_optimal, split_greedy, get_total
 if __name__ == '__main__':
 
     casas_folder_path = Path(os.path.dirname(__file__)) / 'data'
-    true_sent_breaks, casas_df = get_casas_data(casas_folder_path, labels=6)
+    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path, labels=1500)
 
     corpus_path = './text.txt'
     with open(corpus_path, "w") as text_file:
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     wrdvec_path = 'wrdvecs.bin'
     # optimal params from grid search
-    word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=15, size=150, binary=1)
+    word2vec.word2vec(corpus_path, wrdvec_path, cbow=1, iter_=5, hs=1, threads=8, sample='1e-5', window=7, size=5, binary=1)
     model = word2vec.load(wrdvec_path)
 
     os.remove(wrdvec_path)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     print(wrdvecs.shape)
 
     # optimal params from grid search
-    segment_len = 25  # segment target length in sentences
+    segment_len = 250  # segment target length in sentences
     sentenced_text = [str(i) for i in casas_df["Description_ID"]]
 
     vecr = CountVectorizer(vocabulary=wrdvecs.index)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     penalty = get_penalty([sentence_vectors], segment_len)
     print('penalty %4.2f' % penalty)
 
-    optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=250)
+    optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=600)
     segmented_text = get_segments(sentenced_text, optimal_segmentation)
 
     print('%d sentences, %d segments, avg %4.2f sentences per segment' % (
