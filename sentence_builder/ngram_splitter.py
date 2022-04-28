@@ -55,6 +55,12 @@ def ngram_results(dataset_getter, data_name, opt_ws, opt_bp):
 
     predicted_break_pts = model.break_pts
     true_sentences = sorted(true_sent_breaks)
+    with open("/groups/pupko/alburquerque/ActionSeg/Action-Segmentator/sentence_builder/n_gram_res.txt", 'w+') as fp:
+        fp.write("predicted_break_pts\n\n")
+        fp.write(str(predicted_break_pts))
+        fp.write("\n\n")
+        fp.write("true_sentences\n\n")
+        fp.write(str(true_sentences))
     p_k = break_seq_p_k(predicted_break_pts, true_sentences)
     f_score = precision_recall(true_sentences, predicted_break_pts, len(casas_df))[3]
 
