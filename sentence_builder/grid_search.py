@@ -35,7 +35,7 @@ def grid_search(dataset_getter, label_range, data_name):
     names = ['segment_len', 'labels', 'window', 'size']
 
     naming_transformer = {
-        'labels': 'Number of Buckets',
+        'labels': 'Number of Bins',
         'cbow': 'CBOW vs Skipgram',
         'window': 'Window size',
         'size': 'Output vector size',
