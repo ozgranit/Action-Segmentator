@@ -145,6 +145,80 @@ def get_df(filename):
     return data
 
 
+def precision_recall_chuncks(true_segs, predicted_segs, text_len):
+    if true_segs[0] == 0:
+        true_segs = true_segs[1:]
+    if predicted_segs[0] == 0:
+        predicted_segs = predicted_segs[1:]
+
+    TP_lst, TN_lst, TotalP_lst, totalN_lst, FP_lst, FN_lst = [], [], [], [], [], []
+    last_i_ran_pred, last_i_ran_true = 0, 0
+    # chunk for pred
+    for chunk_counter in range(100):
+        current_size = predicted_segs[-1] // 100
+        pred_array = np.full((current_size, current_size), False, dtype=bool)
+        np.fill_diagonal(pred_array, 1)
+        prev_pred = 0
+        for i in range(last_i_ran_pred, len(predicted_segs)):
+            current_seg_pred = predicted_segs[i] - (chunk_counter * current_size)
+            if current_seg_pred > current_size:
+                pred_array[prev_pred:current_size, prev_pred:current_size] = 1
+                last_i_ran_pred = i
+                break
+            pred_array[prev_pred:current_seg_pred, prev_pred:current_seg_pred] = 1
+            prev_pred = current_seg_pred
+
+        # chunk for true
+        true_array = np.full((current_size, current_size), False, dtype=bool)
+        prev_true = 0
+        np.fill_diagonal(true_array, 1)
+        for j in range(last_i_ran_true, len(true_segs)):
+            current_seg_true = true_segs[j] - (chunk_counter * current_size)
+            if current_seg_true > current_size:
+                true_array[prev_true:current_size, prev_true:current_size] = 1
+                last_i_ran_true = j
+                break
+            true_array[prev_true:current_seg_true, prev_true:current_seg_true] = 1
+            prev_true = current_seg_true
+
+        # correct error caused by chunks
+        pred_height = current_size - prev_pred
+        pred_width = current_seg_pred - current_size
+        true_height = current_size - prev_true
+        true_width = current_seg_true - current_size
+        correction_array = np.full((max(pred_height, true_height), max(pred_width, true_width)), 0, dtype='int8')
+
+        # fill with true
+        correction_array[:true_height, :true_width] = 2
+        # fill with pred
+        correction_array[:pred_height, :pred_width] += 1
+        # easier than value counts because not all values have to be there
+        correction_TP = correction_array[correction_array == 3].size
+        correction_FP = correction_array[correction_array == 1].size
+        correction_FN = correction_array[correction_array == 2].size
+
+        FP_lst.append(correction_FP)
+        FN_lst.append(correction_FN)
+        TP_lst.append(correction_TP)
+
+
+        FP_lst.append(np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 0)).sum()//2)
+        FN_lst.append(np.logical_and(np.equal(pred_array, 0), np.equal(true_array, 1)).sum()//2)
+        TP_lst.append((np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 1)).sum()-current_size)//2)
+
+
+    true_positives = sum(TP_lst)
+    false_positives = sum(FP_lst)
+    false_negatives = sum(FN_lst)
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    acc = 0
+    F_score = (2 * true_positives) / ((2 * true_positives) + false_positives + false_negatives)
+
+    return precision, recall, acc, F_score
+
+
 def precision_recall(true_segs, predicted_segs, text_len):
     true_positives, true_negatives, false_positives, false_negatives = 0, 0, 0, 0
 
