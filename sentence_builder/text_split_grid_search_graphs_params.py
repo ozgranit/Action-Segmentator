@@ -1,7 +1,7 @@
 import os
 import sys
 
-import word2vec
+from gensim.models import word2vec
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -18,10 +18,8 @@ if __name__ == '__main__':
 
     casas_folder_path = Path(os.path.dirname(__file__)) / 'data'
     # true_sent_breaks, casas_df = get_casas_data(casas_folder_path)
-    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path)
+    true_sent_breaks, casas_df = get_aruba_data(casas_folder_path, labels=1500)
     # which is ok cause is where true sent breaks anyway
-    casas_df = casas_df[casas_df['date'] == '2010-11-04']
-    true_sent_breaks = true_sent_breaks[:63]
     corpus_path = './text_2.txt'
     with open(corpus_path, "w") as text_file:
         for item in casas_df["Description_ID"]:
@@ -29,15 +27,15 @@ if __name__ == '__main__':
 
 
     possible_values = {
-    'segment_len': [5, 10, 15, 20, 25, 27, 30, 35, 40, 45, 50, 55, 60, 65,80,90,100,110],
-    'cbow': [0, 1],
-    'negative':[0, 3, 5, 8, 10, 13, 15, 20],
-    'iter_': [5, 10],
-    'hs': [0, 1],
-    'sample' :  ['0', '1e-3', '1e-4', '1e-5', '1e-6'],
-    'window' :[5, 10, 15, 25, 30, 35, 50, 100],
-    'size': [5, 10, 20, 30, 40, 50, 75, 100, 150, 200],
-    'binary':[1]
+    'segment_len': [150,200,250,300,350,400],
+    'cbow': [],
+    'negative':[],
+    'iter_': [],
+    'hs': [],
+    'sample' :  [],
+    'window' :[5,10,15,25,40,60,80],
+    'size': [5, 10, 20, 30, 40, 50, 75, 100, 150, 200,250,300,400],
+    'binary':[]
     }
     results = {}
 
@@ -47,7 +45,7 @@ if __name__ == '__main__':
         'hs': 1,
         'iter_': 5,
         'negative': 3,
-        'sample': '0',
+        'sample': 1e-5,
         'segment_len': 15,
         'size': 150,
         'window': 15
@@ -64,7 +62,7 @@ if __name__ == '__main__':
     allNames = sorted(possible_values)
     temp_scores = []
     best_pk = sys.maxsize
-    Path("figures_day2").mkdir(exist_ok=True)
+    Path("figures_Aruba_new").mkdir(exist_ok=True)
     k=0
     for param_to_test in allNames:
         param_values, param_results_opt, param_results_greedy, param_res_f_opt, param_res_f_greedy = [], [], [], [], []
@@ -76,17 +74,16 @@ if __name__ == '__main__':
             binary, cbow, hs, iter_, negative, sample, segment_len, size, window = [current_params.get(key) for key in allNames]
             # train with this param
 
-            wrdvec_path = 'wrdvecs_graphs.bin'
-            word2vec.word2vec(corpus_path, wrdvec_path, cbow=cbow, iter_=iter_, hs=hs, threads=8, sample=sample,
-                              window=window, size=size, binary=binary, negative=negative)
-            model = word2vec.load(wrdvec_path)
-            wrdvecs = pd.DataFrame(model.vectors, index=model.vocab)
+            model = word2vec.Word2Vec(corpus_file=corpus_path, cbow_mean=cbow, hs=hs, sample=1e-5, window=window,
+                                      vector_size=size)
+
+            wrdvecs = pd.DataFrame(model.wv.vectors, index=model.wv.key_to_index.keys())
             del model
             sentenced_text = [str(i) for i in casas_df["Description_ID"]]
             vecr = CountVectorizer(vocabulary=wrdvecs.index)
             sentence_vectors = vecr.transform(sentenced_text).dot(wrdvecs)
             penalty = get_penalty([sentence_vectors], segment_len)
-            optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=250)
+            optimal_segmentation = split_optimal(sentence_vectors, penalty, seg_limit=600)
             segmented_text = get_segments(sentenced_text, optimal_segmentation)
             greedy_segmentation = split_greedy(sentence_vectors, max_splits=len(optimal_segmentation.splits))
             true_sentences = sorted(true_sent_breaks)

@@ -147,54 +147,169 @@ def get_df(filename):
 
     return data
 
-def precision_recall(true_segs, predicted_segs, text_len):
+def precision_recall_old(true_segs, predicted_segs, text_len):
+    true_positives, true_negatives, false_positives, false_negatives = 0, 0, 0, 0
+
+    # build true clustering allocation
+    true_seg_allocation = {}
+    prev_seg, cluster_index = 0, 0
+    for seg_point in true_segs:
+        for point in range(prev_seg, seg_point):
+            true_seg_allocation[point] = cluster_index
+        cluster_index += 1
+        prev_seg = seg_point
+
+    # build pred clustering allocation
+    pred_seg_allocation = {}
+    prev_seg, cluster_index = 0, 0
+    for seg_point in predicted_segs:
+        for point in range(prev_seg, seg_point):
+            pred_seg_allocation[point] = cluster_index
+        cluster_index += 1
+        prev_seg = seg_point
+
+    for i in range(text_len):
+        for j in range(i+1, text_len):
+            are_the_same_cluster_true = true_seg_allocation.get(i) == true_seg_allocation.get(j)
+            are_the_same_cluster_pred = pred_seg_allocation.get(i) == pred_seg_allocation.get(j)
+
+            if are_the_same_cluster_true is True:
+                if are_the_same_cluster_pred is True:
+                    true_positives += 1
+                else:
+                    false_negatives += 1
+
+            if are_the_same_cluster_true is False:
+                if are_the_same_cluster_pred is False:
+                    true_negatives += 1
+                else:
+                    false_positives += 1
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    acc = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+    F_score = 2 * ((precision * recall) / (precision + recall))
+
+    return precision, recall, acc, F_score
+
+
+
+def precision_recall_chuncks(true_segs, predicted_segs, text_len):
+    if true_segs[0] == 0:
+        true_segs = true_segs[1:]
+    if predicted_segs[0] == 0:
+        predicted_segs = predicted_segs[1:]
+
     TP_lst, TN_lst, TotalP_lst, totalN_lst, FP_lst, FN_lst = [], [], [], [], [], []
-    index_to_run_to = 0
+    last_i_ran_pred, last_i_ran_true = 0, 0
+    # chunk for pred
     for chunk_counter in range(100):
         current_size = predicted_segs[-1] // 100
-        index_to_run_to += current_size
-        n_gram_pred_array = np.full((current_size, current_size), False, dtype=bool)
-        prev = 0
-        for i in predicted_segs:
-            if i > index_to_run_to:
-                n_gram_pred_array[prev:index_to_run_to, prev:index_to_run_to] = 1
+        pred_array = np.full((current_size, current_size), False, dtype=bool)
+        np.fill_diagonal(pred_array, 1)
+        prev_pred = 0
+        for i in range(last_i_ran_pred, len(predicted_segs)):
+            current_seg_pred = predicted_segs[i] - (chunk_counter * current_size)
+            if current_seg_pred > current_size:
+                pred_array[prev_pred:current_size, prev_pred:current_size] = 1
+                last_i_ran_pred = i
                 break
-            n_gram_pred_array[prev:i, prev:i] = 1
-            prev = i
+            pred_array[prev_pred:current_seg_pred, prev_pred:current_seg_pred] = 1
+            prev_pred = current_seg_pred
 
+        # chunk for true
         true_array = np.full((current_size, current_size), False, dtype=bool)
-        for i in true_segs:
-            if i > index_to_run_to:
-                true_array[prev:index_to_run_to, prev:index_to_run_to] = 1
+        prev_true = 0
+        np.fill_diagonal(true_array, 1)
+        for j in range(last_i_ran_true, len(true_segs)):
+            current_seg_true = true_segs[j] - (chunk_counter * current_size)
+            if current_seg_true > current_size:
+                true_array[prev_true:current_size, prev_true:current_size] = 1
+                last_i_ran_true = j
                 break
-            true_array[prev:i, prev:i] = 1
-            prev = i
-        TotalP_lst.append(n_gram_pred_array.sum())
-        totalN_lst.append(np.logical_not(n_gram_pred_array).sum())
-        TP_lst.append(np.logical_and(n_gram_pred_array, true_array).sum())
-        TN_lst.append(np.logical_not(np.logical_or(n_gram_pred_array, true_array)).sum())
-        FN_lst.append(totalN_lst[-1] - TN_lst[-1])
-        FP_lst.append(TotalP_lst[-1] - TP_lst[-1])
+            true_array[prev_true:current_seg_true, prev_true:current_seg_true] = 1
+            prev_true = current_seg_true
 
-    f_scores, precision_scores, recall_scores, acc_scores = [], [], [], []
+        # correct error caused by chunks
+        pred_height = current_size - prev_pred
+        pred_width = current_seg_pred - current_size
+        true_height = current_size - prev_true
+        true_width = current_seg_true - current_size
+        correction_array = np.full((max(pred_height, true_height), max(pred_width, true_width)), 0, dtype='int8')
 
-    for i in range(len(FN_lst)):
-        true_positives = TP_lst[i]
-        false_positives = FP_lst[i]
-        true_negatives = TN_lst[i]
-        false_negatives = FP_lst[i]
+        # fill with true
+        correction_array[:true_height, :true_width] = 2
+        # fill with pred
+        correction_array[:pred_height, :pred_width] += 1
+        # easier than value counts because not all values have to be there
+        correction_TP = correction_array[correction_array == 3].size
+        correction_FP = correction_array[correction_array == 1].size
+        correction_FN = correction_array[correction_array == 2].size
 
-        precision = true_positives / (true_positives + false_positives)
-        recall = true_positives / (true_positives + false_negatives)
-        acc = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
-        F_score = 2 * ((precision * recall) / (precision + recall))
+        FP_lst.append(correction_FP)
+        FN_lst.append(correction_FN)
+        TP_lst.append(correction_TP)
 
-        f_scores.append(F_score)
-        precision_scores.append(precision)
-        recall_scores.append(recall)
-        acc_scores.append(acc)
 
-    return np.mean(precision_scores), np.mean(recall_scores), np.mean(acc_scores), np.mean(f_scores)
+        FP_lst.append(np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 0)).sum()//2)
+        FN_lst.append(np.logical_and(np.equal(pred_array, 0), np.equal(true_array, 1)).sum()//2)
+        TP_lst.append((np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 1)).sum()-current_size)//2)
+        #TN_lst.append(np.logical_and(np.equal(pred_array, 0), np.equal(true_array, 0)).sum()//2)
+
+
+        # TP_lst.append((np.logical_and(pred_array, true_array).sum() - current_size) // 2)
+        # TN_lst.append((np.logical_not(np.logical_or(pred_array, true_array)).sum()//2))
+        # FN_lst.append(totalN_lst[-1] - TN_lst[-1])
+        # FP_lst.append(TotalP_lst[-1] - TP_lst[-1])
+
+
+    true_positives = sum(TP_lst)
+    false_positives = sum(FP_lst)
+    #true_negatives = sum(TN_lst) # this is very very wrong
+    false_negatives = sum(FN_lst)
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    acc = 0
+    F_score = (2 * true_positives) / ((2 * true_positives) + false_positives + false_negatives)
+
+    return precision, recall, acc, F_score
+
+
+def precision_recall(true_segs, predicted_segs, text_len):
+    if true_segs[0] == 0:
+        true_segs = true_segs[1:]
+    if predicted_segs[0] == 0:
+        predicted_segs = predicted_segs[1:]
+
+    pred_array = np.full((predicted_segs[-1], predicted_segs[-1]), False, dtype=bool)
+    np.fill_diagonal(pred_array, 1)
+    prev_pred = 0
+    for i in predicted_segs:
+        current_seg = i
+        pred_array[prev_pred:current_seg, prev_pred:current_seg] = 1
+        prev_pred = current_seg
+
+    true_array = np.full((predicted_segs[-1], predicted_segs[-1]), False, dtype=bool)
+    prev_true = 0
+    np.fill_diagonal(true_array, 1)
+    for j in true_segs:
+        current_seg = j
+        true_array[prev_true:current_seg, prev_true:current_seg] = 1
+        prev_true = current_seg
+
+    false_positives = np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 0)).sum() // 2
+    false_negatives = np.logical_and(np.equal(pred_array, 0), np.equal(true_array, 1)).sum() // 2
+    true_positives = (np.logical_and(np.equal(pred_array, 1), np.equal(true_array, 1)).sum() - predicted_segs[-1]) // 2
+    true_negatives = np.logical_and(np.equal(pred_array, 0), np.equal(true_array, 0)).sum() // 2
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    acc = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+    F_score = 2 * ((precision * recall) / (precision + recall))
+
+
+    return precision, recall, acc, F_score
 
 
 def find_max_vocab(dataset_getter, range_func, data_name):
